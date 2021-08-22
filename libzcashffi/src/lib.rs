@@ -1,4 +1,4 @@
-use libc::{c_char, c_uint, c_ulong};
+use libc::c_char;
 use std::ffi::{CStr, CString};
 use zcash_client_backend::{address::RecipientAddress, encoding::decode_transparent_address};
 use zcash_primitives::{
@@ -18,8 +18,8 @@ use zcash_proofs::prover::LocalTxProver;
 #[repr(C)]
 pub struct UTXO {
     transaction_hash: *const c_char,
-    index: c_uint,
-    amount: c_ulong,
+    index: u32,
+    amount: u64,
     private_key: *const c_char,
 }
 
@@ -76,7 +76,7 @@ pub extern "C" fn build_transaction(
         let secret = hex::decode(private_key.to_str().unwrap()).unwrap();
         let secret_key = secp256k1::SecretKey::from_slice(secret.as_slice()).unwrap();
 
-        total = total + amount;
+        total = total + item.amount;
         let coin = TxOut {
             value: Amount::from_u64(amount).unwrap(),
             script_pubkey: Script::default(), // TODO for TransparentAddress::PublicKey there don't have script_pubkey?
@@ -90,9 +90,11 @@ pub extern "C" fn build_transaction(
     let to = RecipientAddress::decode(&params.clone(), to_address).unwrap();
     let mut change_index = 0u64;
     match to {
-        RecipientAddress::Shielded(addr) => builder
-            .add_sapling_output(None, addr, Amount::from_u64(amount).unwrap(), None)
-            .unwrap(),
+        RecipientAddress::Shielded(addr) => {
+            builder
+                .add_sapling_output(None, addr, Amount::from_u64(amount).unwrap(), None)
+                .unwrap();
+        }
         RecipientAddress::Transparent(addr) => {
             change_index = 1u64;
             builder

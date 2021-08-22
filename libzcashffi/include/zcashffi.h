@@ -6,13 +6,16 @@
 typedef struct Response {
   const char *transaction_id;
   const char *raw;
-  uint64_t remains;
+  uint64_t output_index;
+  uint64_t output_amount;
+  uint64_t change_index;
+  uint64_t change_amount;
 } Response;
 
 typedef struct UTXO {
   const char *transaction_hash;
-  unsigned int index;
-  unsigned long amount;
+  uint32_t index;
+  uint64_t amount;
   const char *private_key;
 } UTXO;
 
