@@ -6,6 +6,7 @@
 typedef struct Response {
   const char *transaction_id;
   const char *raw;
+  uint64_t remains;
 } Response;
 
 typedef struct UTXO {
@@ -15,11 +16,13 @@ typedef struct UTXO {
   const char *private_key;
 } UTXO;
 
-struct Response *build_transaction(uint32_t input_length,
-                                   struct UTXO *inputs_ptr,
+struct Response *build_transaction(struct UTXO *inputs_ptr,
+                                   uint32_t input_length,
                                    const char *to,
                                    uint64_t amount,
                                    const char *change,
-                                   uint32_t height);
-
-void sapling(const uint8_t *output, uint32_t len);
+                                   uint32_t height,
+                                   const uint8_t *spend_params,
+                                   uint32_t spend_params_len,
+                                   const uint8_t *output_params,
+                                   uint32_t output_params_len);

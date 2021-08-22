@@ -1,6 +1,9 @@
 use libc::{c_char, c_uint, c_ulong};
 use std::ffi::{CStr, CString};
-use zcash_client_backend::encoding::{decode_payment_address, decode_transparent_address};
+use zcash_client_backend::{
+    address::RecipientAddress,
+    encoding::{decode_payment_address, decode_transparent_address},
+};
 use zcash_primitives::{
     consensus::{BlockHeight, Network},
     constants::mainnet::{
@@ -29,7 +32,10 @@ pub struct UTXO {
 pub struct Response {
     transaction_id: *const c_char,
     raw: *const c_char,
-    remains: u64,
+    output_index: u64,
+    output_amount: u64,
+    change_index: u64,
+    change_amount: u64,
 }
 
 #[no_mangle]
@@ -86,16 +92,23 @@ pub extern "C" fn build_transaction(
             .unwrap();
     }
 
-    let to = decode_payment_address(HRP_SAPLING_PAYMENT_ADDRESS, to_address)
-        .unwrap()
-        .unwrap();
-    builder
-        .add_sapling_output(None, to, Amount::from_u64(amount).unwrap(), None)
-        .unwrap();
+    let to = RecipientAddress::decode(&params.clone(), to_address).unwrap();
+    let mut change_index = 0u64;
+    match to {
+        RecipientAddress::Shielded(addr) => builder
+            .add_sapling_output(None, addr, Amount::from_u64(amount).unwrap(), None)
+            .unwrap(),
+        RecipientAddress::Transparent(addr) => {
+            change_index = 1u64;
+            builder
+                .add_transparent_output(&addr, Amount::from_u64(amount).unwrap())
+                .unwrap();
+        }
+    };
 
     // 1000 is DEFAULT_FEE
     let default_fee = 1000u64;
-    if total > amount + default_fee {
+    if total - default_fee > amount {
         let to = decode_transparent_address(
             &B58_PUBKEY_ADDRESS_PREFIX,
             &B58_SCRIPT_ADDRESS_PREFIX,
@@ -119,7 +132,10 @@ pub extern "C" fn build_transaction(
             .unwrap()
             .into_raw(),
         raw: CString::new(hex::encode(raw)).unwrap().into_raw(),
-        remains: total - amount - default_fee,
+        output_index: 0,
+        output_amount: amount,
+        change_index: change_index,
+        change_amount: total - amount - default_fee,
     };
 
     Box::into_raw(Box::new(resp))
