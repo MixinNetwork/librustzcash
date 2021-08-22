@@ -6,7 +6,7 @@ use zcash_primitives::{
     constants::mainnet::{
         B58_PUBKEY_ADDRESS_PREFIX, B58_SCRIPT_ADDRESS_PREFIX, HRP_SAPLING_PAYMENT_ADDRESS,
     },
-    legacy::{Script, TransparentAddress},
+    legacy::Script,
     transaction::{
         builder::Builder,
         components::{
@@ -29,12 +29,13 @@ pub struct UTXO {
 pub struct Response {
     transaction_id: *const c_char,
     raw: *const c_char,
+    remains: u64,
 }
 
 #[no_mangle]
 pub extern "C" fn build_transaction(
-    input_length: u32,
     inputs_ptr: *mut UTXO,
+    input_length: u32,
     to: *const c_char,
     amount: u64,
     change: *const c_char,
@@ -49,6 +50,7 @@ pub extern "C" fn build_transaction(
 
     let items: &mut [UTXO] = unsafe {
         assert!(!inputs_ptr.is_null());
+
         std::slice::from_raw_parts_mut(inputs_ptr, input_length as usize)
     };
 
@@ -60,24 +62,23 @@ pub extern "C" fn build_transaction(
     let output_params =
         unsafe { std::slice::from_raw_parts(output_params, output_params_len as usize) };
 
-    let mut total = 0u64;
     let mut builder = Builder::new(params.clone(), BlockHeight::from(height));
+
+    let mut total = 0u64;
     for item in items {
         let transaction_hash = unsafe { CStr::from_ptr(item.transaction_hash) };
         let private_key = unsafe { CStr::from_ptr(item.private_key) };
         let mut hash = [0u8; 32];
         hex::decode_to_slice(transaction_hash.to_str().unwrap(), &mut hash as &mut [u8]).unwrap();
         let output = OutPoint::new(hash, item.index);
-        let mut secret = [0u8; 32];
-        hex::decode_to_slice(private_key.to_str().unwrap(), &mut secret as &mut [u8]).unwrap();
-        let secret_key = secp256k1::SecretKey::from_slice(&secret).unwrap();
 
-        //let pubkey = secp256k1::PublicKey::from_slice(&[0u8, 32]);
+        let secret = hex::decode(private_key.to_str().unwrap()).unwrap();
+        let secret_key = secp256k1::SecretKey::from_slice(secret.as_slice()).unwrap();
 
         total = total + amount;
         let coin = TxOut {
             value: Amount::from_u64(amount).unwrap(),
-            script_pubkey: Script::default(), // TODO
+            script_pubkey: Script::default(), // TODO for TransparentAddress::PublicKey there don't have script_pubkey?
         };
 
         builder
@@ -118,6 +119,7 @@ pub extern "C" fn build_transaction(
             .unwrap()
             .into_raw(),
         raw: CString::new(hex::encode(raw)).unwrap().into_raw(),
+        remains: total - amount - default_fee,
     };
 
     Box::into_raw(Box::new(resp))
