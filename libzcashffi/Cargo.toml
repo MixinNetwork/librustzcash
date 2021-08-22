@@ -1,0 +1,22 @@
+[package]
+name = "libzcashffi"
+version = "0.1.0"
+authors = ["Li Yuqing <im.yuqlee@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "zcashffi"
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[dependencies]
+zcash_note_encryption = { version = "0.0", path = "../components/zcash_note_encryption" }
+zcash_primitives = { version = "0.5", path = "../zcash_primitives", features = ["transparent-inputs"] }
+zcash_proofs = { version = "0.5.0", path = "../zcash_proofs" }
+zcash_client_backend = { version = "0.5.0", path = "../zcash_client_backend" }
+
+libc = "0.2"
+hex = "0.4.3"
+secp256k1 = "0.20"
+

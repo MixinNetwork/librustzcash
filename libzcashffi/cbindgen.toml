@@ -1,0 +1,8 @@
+language = "C"
+
+[cython]
+
+# Header specified in the top level `cdef extern from header:` declaration.
+#
+# default: *
+header = '"zcashffi.h"'
