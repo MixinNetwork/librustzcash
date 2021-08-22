@@ -1,14 +1,9 @@
 use libc::{c_char, c_uint, c_ulong};
 use std::ffi::{CStr, CString};
-use zcash_client_backend::{
-    address::RecipientAddress,
-    encoding::{decode_payment_address, decode_transparent_address},
-};
+use zcash_client_backend::{address::RecipientAddress, encoding::decode_transparent_address};
 use zcash_primitives::{
     consensus::{BlockHeight, Network},
-    constants::mainnet::{
-        B58_PUBKEY_ADDRESS_PREFIX, B58_SCRIPT_ADDRESS_PREFIX, HRP_SAPLING_PAYMENT_ADDRESS,
-    },
+    constants::mainnet::{B58_PUBKEY_ADDRESS_PREFIX, B58_SCRIPT_ADDRESS_PREFIX},
     legacy::Script,
     transaction::{
         builder::Builder,
